@@ -1,0 +1,97 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crud-app-deployment
+  labels:
+    app: crud-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crud-app
+  template:
+    metadata:
+      labels:
+        app: crud-app
+    spec:
+      containers:
+      - name: crud-app
+        image: final_assignment-backend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        env:
+        - name: db_address
+          value: db
+        - name: db_username
+          value: postgres
+        - name: db_password
+          value: /run/secrets/db-password
+        - name: db_name
+          value: postgres
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+#        volumeMounts:
+#        - mountPath: "/var/lib/postgresql/data"
+#          name: mypd
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: db
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: /run/secrets/db-password
+#      volumes:
+#      - name: mypd
+#        persistentVolumeClaim:
+#          claimName: task-pv-volume-claim
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: crud-app-service
+spec:
+  type: NodePort
+  selector:
+    app: crud-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+      nodePort: 32000
